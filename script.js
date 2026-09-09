@@ -28,7 +28,7 @@ const defaultBiosData = {
             { label: "Time (hh:mm:ss)", type: "datetime", subType: "time", value: obterHoraEstruturada() },
             { label: "IDE Primary Master", type: "select", options: ["None", "Auto", "Hard Disk"], value: "Auto" },
             { label: "IDE Primary Slave", type: "select", options: ["None", "Auto", "CDROM"], value: "CDROM" },
-            { label: "Drive A", type: "select", options: ["None", "1.44M, 3.5 in."], value: "1.44M, 3.5 in." }
+            { label: "Drive A", type: "select", options: ["None", "1.44M, 3.5 in."], value: "None" }
         ]
     },
     advanced: {
@@ -90,7 +90,6 @@ let selectedItemIndex = 0;
 let inContentArea = false; 
 let isHelpOpen = false;
 
-// Controle de sub-foco para data/hora estruturada (0 = primeiro bloco, 1 = segundo, 2 = terceiro)
 let subFieldIndex = 0; 
 let isSubEditing = false;
 
@@ -126,7 +125,12 @@ function iniciarPOST() {
 
 function iniciarBootWindows() {
     currentAppState = "WIN_BOOT";
+    // Oculta rigorosamente todas as outras telas
     document.getElementById("post-screen").style.display = "none";
+    document.getElementById("bios-container").style.display = "none";
+    document.getElementById("os-desktop-screen").style.display = "none";
+    
+    // Exibe apenas a tela de boot do Windows
     document.getElementById("windows-boot-screen").style.display = "flex";
 
     setTimeout(() => {
@@ -166,7 +170,6 @@ function atualizarListaMenuHTML() {
 const helpTextEl = document.getElementById("help-text");
 const helpModalEl = document.getElementById("help-modal");
 
-// Retorna o número máximo de dias de um mês considerando ano bissexto
 function diasNoMes(mes, ano) {
     return new Date(ano, mes, 0).getDate();
 }
@@ -298,20 +301,18 @@ window.addEventListener("keydown", (event) => {
                         selectedItemIndex++;
                         isSubEditing = false;
                     } else if (inContentArea && isSubEditing && activeItem.type === "datetime") {
-                        // Modifica o valor numérico respeitando os limites
                         let direcao = event.key === "ArrowUp" ? 1 : -1;
                         let v = activeItem.value;
 
                         if (activeItem.subType === "date") {
-                            if (subFieldIndex === 0) { // Mês (1 a 12)
+                            if (subFieldIndex === 0) { 
                                 v.mes = ((v.mes - 1 + direcao + 12) % 12) + 1;
-                                // Garante que o dia não ultrapasse o novo limite do mês
                                 let maxD = diasNoMes(v.mes, v.ano);
                                 if (v.dia > maxD) v.dia = maxD;
-                            } else if (subFieldIndex === 1) { // Dia (1 até max dias do mês)
+                            } else if (subFieldIndex === 1) { 
                                 let maxD = diasNoMes(v.mes, v.ano);
                                 v.dia = ((v.dia - 1 + direcao + maxD) % maxD) + 1;
-                            } else if (subFieldIndex === 2) { // Ano (1990 a 2099)
+                            } else if (subFieldIndex === 2) { 
                                 v.ano += direcao;
                                 if (v.ano < 1990) v.ano = 2099;
                                 if (v.ano > 2099) v.ano = 1990;
@@ -319,11 +320,11 @@ window.addEventListener("keydown", (event) => {
                                 if (v.dia > maxD) v.dia = maxD;
                             }
                         } else if (activeItem.subType === "time") {
-                            if (subFieldIndex === 0) { // Hora (0 a 23)
+                            if (subFieldIndex === 0) { 
                                 v.hora = (v.hora + direcao + 24) % 24;
-                            } else if (subFieldIndex === 1) { // Minuto (0 a 59)
+                            } else if (subFieldIndex === 1) { 
                                 v.minuto = (v.minuto + direcao + 60) % 60;
-                            } else if (subFieldIndex === 2) { // Segundo (0 a 59)
+                            } else if (subFieldIndex === 2) { 
                                 v.segundo = (v.segundo + direcao + 60) % 60;
                             }
                         }
@@ -341,7 +342,7 @@ window.addEventListener("keydown", (event) => {
                         if (subFieldIndex < 2) {
                             subFieldIndex++;
                         } else {
-                            isSubEditing = false; // Terminou os blocos, sai da sub-edição
+                            isSubEditing = false;
                         }
                     } else if (activeItem.type === "select") {
                         let optIndex = activeItem.options.indexOf(activeItem.value);
@@ -377,9 +378,8 @@ window.addEventListener("keydown", (event) => {
                     if (activeItem.type === "datetime") {
                         if (!isSubEditing) {
                             isSubEditing = true;
-                            subFieldIndex = 0; // Começa no primeiro bloco (Mês ou Hora)
+                            subFieldIndex = 0; 
                         } else {
-                            // Avança para o próximo bloco ao dar Enter ou fecha se estiver no último
                             if (subFieldIndex < 2) {
                                 subFieldIndex++;
                             } else {
