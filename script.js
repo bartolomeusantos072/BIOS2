@@ -86,6 +86,7 @@ let biosData = JSON.parse(sessionStorage.getItem("cmos_bios_data")) || defaultBi
 let currentMenuKey = "main";
 let selectedItemIndex = 0;
 let inContentArea = false; 
+let isEditingText = false; // Flag para controlar se estamos digitando livremente em um campo de texto
 let isHelpOpen = false;
 
 let memoryTarget = 65536; 
@@ -178,10 +179,17 @@ function renderBIOSScreen() {
     
     currentMenu.items.forEach((item, index) => {
         let isSelected = (inContentArea && selectedItemIndex === index);
+        let displayValue = item.value !== undefined ? item.value : '&gt;&gt;';
+        
+        // Se estiver editando este campo de texto, adiciona um cursor piscante visual simulado
+        if (isSelected && isEditingText && item.type === "text") {
+            displayValue = `<span style="border-bottom: 2px solid #fff; background-color: #000066;">${displayValue}_</span>`;
+        }
+
         htmlContent += `
             <div class="setting-row ${isSelected ? 'selected' : ''}">
                 <span class="setting-label">${item.label}</span>
-                <span class="setting-value">${item.value !== undefined ? item.value : '&gt;&gt;'}</span>
+                <span class="setting-value">${displayValue}</span>
             </div>
         `;
     });
@@ -195,6 +203,36 @@ function salvarNoCMOS() {
 }
 
 window.addEventListener("keydown", (event) => {
+    // Se estiver editando um campo de texto livremente
+    if (currentAppState === "BIOS" && inContentArea && isEditingText) {
+        let currentMenuObj = biosData[currentMenuKey];
+        let item = currentMenuObj.items[selectedItemIndex];
+
+        if (event.key === "Enter" || event.key === "Escape") {
+            event.preventDefault();
+            isEditingText = false; // Sai do modo de digitação inline
+            renderBIOSScreen();
+            return;
+        }
+
+        if (event.key === "Backspace") {
+            event.preventDefault();
+            if (item.value.length > 0) {
+                item.value = item.value.slice(0, -1);
+                renderBIOSScreen();
+            }
+            return;
+        }
+
+        // Se for um caractere legível, adiciona ao texto do campo
+        if (event.key.length === 1) {
+            event.preventDefault();
+            item.value += event.key;
+            renderBIOSScreen();
+            return;
+        }
+    }
+
     if (["F1", "F2", "F5", "F10", "Delete", "Del", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Escape"].includes(event.key)) {
         event.preventDefault();
     }
@@ -271,10 +309,7 @@ window.addEventListener("keydown", (event) => {
                         optIndex = (optIndex + 1) % item.options.length;
                         item.value = item.options[optIndex];
                     } else if (item.type === "text") {
-                        let novoValor = prompt(`Alterar ${item.label}:`, item.value);
-                        if (novoValor !== null && novoValor.trim() !== "") {
-                            item.value = novoValor.trim();
-                        }
+                        isEditingText = true; // Ativa digitação inline
                     }
                 }
                 break;
@@ -305,10 +340,7 @@ window.addEventListener("keydown", (event) => {
                         optIndex = (optIndex + 1) % item.options.length;
                         item.value = item.options[optIndex];
                     } else if (item.type === "text") {
-                        let novoValor = prompt(`Alterar ${item.label}:`, item.value);
-                        if (novoValor !== null && novoValor.trim() !== "") {
-                            item.value = novoValor.trim();
-                        }
+                        isEditingText = true; // Ativa digitação direta na linha ao pressionar Enter
                     } else if (item.type === "action") {
                         if (item.action === "save") {
                             salvarNoCMOS();
