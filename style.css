@@ -1,0 +1,253 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+body {
+    background-color: #111;
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.screen {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+/* POST Screen */
+#post-screen {
+    background-color: #000;
+    border: 4px solid #333;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    color: #ccc;
+    font-size: 24px;
+}
+
+.blink-text {
+    color: #ffff00;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* Windows Boot Screen */
+#windows-boot-screen {
+    background-color: #000;
+    border: 4px solid #222;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.boot-content h2 {
+    color: #fff;
+    margin: 15px 0;
+    font-family: Arial, sans-serif;
+    font-weight: normal;
+    letter-spacing: 1px;
+}
+
+.windows-logo-box {
+    display: grid;
+    grid-template-columns: repeat(2, 15px);
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.win-square {
+    width: 15px;
+    height: 15px;
+}
+.win-square.red { background-color: #f25022; }
+.win-square.green { background-color: #7fba00; }
+.win-square.blue { background-color: #00a4ef; }
+.win-square.yellow { background-color: #ffb900; }
+
+.loading-bar-container {
+    width: 250px;
+    height: 14px;
+    border: 2px solid #555;
+    background-color: #000;
+    padding: 1px;
+    margin: 0 auto;
+    border-radius: 3px;
+}
+
+.loading-bar {
+    height: 100%;
+    background-color: #00a4ef;
+    width: 0%;
+    animation: loadProgress 3.5s linear forwards;
+}
+
+@keyframes loadProgress {
+    0% { width: 0%; }
+    100% { width: 100%; }
+}
+
+/* Windows Desktop Fake */
+#os-desktop-screen {
+    background-color: #3a6ea5; /* Azul clássico de fundo */
+    border: 4px solid #222;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.desktop-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #779ecb;
+    padding: 15px;
+    border-radius: 5px;
+    text-align: left;
+    font-size: 13px;
+}
+
+#os-desktop-screen button {
+    background: #e1e1e1;
+    color: #000;
+    border: 1px solid #777;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-family: sans-serif;
+    font-weight: bold;
+}
+#os-desktop-screen button:hover {
+    background: #fff;
+}
+
+/* BIOS Container */
+#bios-container {
+    background-color: #0000aa;
+    border: 4px solid #aaaaaa;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 255, 0.5);
+}
+
+.bios-header {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 2px solid #aaaaaa;
+    padding-bottom: 5px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.bios-body {
+    display: flex;
+    flex: 1;
+    padding: 15px 0;
+}
+
+.menu-column {
+    width: 35%;
+    border-right: 2px dashed #000055;
+    padding-right: 10px;
+}
+
+.menu-item {
+    padding: 4px 8px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    color: #aaaaaa;
+}
+
+.menu-item.active {
+    background-color: #aaaaaa;
+    color: #0000aa;
+    font-weight: bold;
+}
+
+.content-column {
+    width: 65%;
+    padding-left: 20px;
+}
+
+.help-box {
+    border: 2px solid #aaaaaa;
+    padding: 10px;
+    height: 100%;
+    font-size: 13px;
+    background-color: #000088;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    margin-bottom: 5px;
+}
+
+.setting-row.selected {
+    background-color: #000066;
+    outline: 1px dotted #fff;
+}
+
+.setting-label {
+    color: #ffff00;
+}
+
+.setting-value {
+    color: #fff;
+    background-color: #0000aa;
+    padding: 0 5px;
+    border: 1px solid transparent;
+}
+
+.setting-row.selected .setting-value {
+    border-color: #ffff00;
+}
+
+.bios-footer {
+    border-top: 2px solid #aaaaaa;
+    padding-top: 5px;
+    font-size: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    color: #aaaaaa;
+}
+
+.bios-footer span b {
+    color: #fff;
+}
+
+#help-modal {
+    display: none;
+    position: absolute;
+    top: 50px;
+    left: 100px;
+    width: 600px;
+    background-color: #0000aa;
+    border: 3px double #fff;
+    padding: 20px;
+    z-index: 10;
+}
+
+#help-modal h3 {
+    margin-bottom: 10px;
+    color: #ffff00;
+    text-align: center;
+}

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Completo de BIOS e Boot</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- TELA 1: POST (Preta estilo Boot Antigo) -->
+    <div id="post-screen" class="screen">
+        <div class="post-content">
+            <p>Award Modular BIOS v6.00PG, An Energy Star Ally</p>
+            <p>Copyright (C) 1984-2005, Award Software, Inc.</p>
+            <br>
+            <p>MAIN Processor : Intel(R) Pentium(R) 4 CPU 3.00GHz</p>
+            <p>Memory Testing : <span id="memory-counter">0KB</span> OK</p>
+            <br>
+            <p>Primary Master  : ST380011A 80.0GB</p>
+            <p>Primary Slave   : ASUS CD-S520/A 52X</p>
+            <p>Secondary Master: None</p>
+            <p>Secondary Slave : None</p>
+            <br><br>
+            <p class="blink-text">Pressione <b>F2</b> ou <b>DEL</b> para entrar no SETUP / BIOS</p>
+            <p style="color: #888; font-size: 11px;">(Aguarde para iniciar o Sistema Operacional...)</p>
+        </div>
+    </div>
+
+    <!-- TELA 2: Boot do Windows Fake (Carregando...) -->
+    <div id="windows-boot-screen" class="screen" style="display: none;">
+        <div class="boot-content">
+            <div class="windows-logo-box">
+                <div class="win-square red"></div>
+                <div class="win-square green"></div>
+                <div class="win-square blue"></div>
+                <div class="win-square yellow"></div>
+            </div>
+            <h2>Microsoft Windows XP</h2>
+            <div class="loading-bar-container">
+                <div class="loading-bar"></div>
+            </div>
+            <p style="margin-top: 15px; font-size: 12px; color: #aaa;">Iniciando o sistema operacional...</p>
+        </div>
+    </div>
+
+    <!-- TELA 3: Área de Trabalho / Sistema Operacional Carregado -->
+    <div id="os-desktop-screen" class="screen" style="display: none;">
+        <div class="desktop-content">
+            <h3>Bem-vindo ao Windows XP (Simulado)</h3>
+            <p>O computador iniciou com sucesso utilizando as configurações do CMOS.</p>
+            <br>
+            <div class="desktop-box">
+                <p><b>Dispositivo de Boot Ativo:</b> Hard Disk / CDROM</p>
+                <p><b>Status da BIOS:</b> Configurações aplicadas corretamente.</p>
+            </div>
+            <br>
+            <button onclick="reiniciarComputador()">[ Reiniciar Computador (Reset) ]</button>
+        </div>
+    </div>
+
+    <!-- TELA 4: O Simulador de BIOS Setup -->
+    <div id="bios-container" class="screen" style="display: none;">
+        <!-- Cabeçalho -->
+        <div class="bios-header">
+            <span>CMOS Setup Utility - Copyright (C) 1985-2005 Award Software</span>
+            <span>Main Menu</span>
+        </div>
+
+        <!-- Corpo -->
+        <div class="bios-body">
+            <div class="menu-column" id="menu-list">
+                <!-- Preenchido via JS -->
+            </div>
+
+            <div class="content-column">
+                <div class="help-box" id="help-text">
+                    Selecione uma opção usando as setas para cima/baixo e pressione Enter.
+                </div>
+            </div>
+        </div>
+
+        <!-- Rodapé -->
+        <div class="bios-footer">
+            <span><b>↑↓</b>: Selecionar Item</span>
+            <span><b>Enter</b>: Alterar / Selecionar</span>
+            <span><b>F1</b>: Ajuda</span>
+            <span><b>F10</b>: Salvar e Sair</span>
+            <span><b>Esc</b>: Sair / Voltar</span>
+        </div>
+
+        <!-- Modal de Ajuda F1 -->
+        <div id="help-modal">
+            <h3>Ajuda do Sistema BIOS</h3>
+            <p id="help-modal-content">Esta tela simula o ambiente de configuração da placa-mãe. Use as setas do teclado para navegar pelas abas e opções. Pressione F10 para salvar as alterações e reiniciar.</p>
+            <br><p style="text-align: center; color: #ffff00;">[ Pressione qualquer tecla para fechar ]</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
