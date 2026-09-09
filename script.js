@@ -1,4 +1,4 @@
-// Estados: 'POST', 'BIOS', 'WIN_BOOT', 'OS_DESKTOP'
+// Estados da aplicação: 'POST', 'BIOS', 'WIN_BOOT', 'OS_DESKTOP'
 let currentAppState = "POST";
 
 const defaultBiosData = {
@@ -10,7 +10,7 @@ const defaultBiosData = {
             { label: "Time (hh:mm:ss)", type: "text", value: "11:29:32" },
             { label: "IDE Primary Master", type: "select", options: ["None", "Auto", "Hard Disk"], value: "Auto" },
             { label: "IDE Primary Slave", type: "select", options: ["None", "Auto", "CDROM"], value: "CDROM" },
-            { label: "Drive A", type: "select", options: ["None", "1.44M, 3.5 in."], value: "1.44M, 3.5 in."]
+            { label: "Drive A", type: "select", options: ["None", "1.44M, 3.5 in."], value: "1.44M, 3.5 in." }
         ]
     },
     advanced: {
@@ -92,7 +92,6 @@ function iniciarPOST() {
             currentMemory = memoryTarget;
             clearInterval(postTimer);
             
-            // Se o usuário não apertar nada, vai direto para o Boot do Windows
             setTimeout(() => {
                 if (currentAppState === "POST") {
                     iniciarBootWindows();
@@ -108,7 +107,6 @@ function iniciarBootWindows() {
     document.getElementById("post-screen").style.display = "none";
     document.getElementById("windows-boot-screen").style.display = "flex";
 
-    // Simula 3.5 segundos de barra carregando e entra no sistema operacional fake
     setTimeout(() => {
         if (currentAppState === "WIN_BOOT") {
             currentAppState = "OS_DESKTOP";
@@ -185,7 +183,6 @@ window.addEventListener("keydown", (event) => {
         event.preventDefault();
     }
 
-    // 1. ESTADO DE POST
     if (currentAppState === "POST") {
         if (event.key === "Delete" || event.key === "F2" || event.key === "F10") {
             clearInterval(postTimer);
@@ -197,7 +194,6 @@ window.addEventListener("keydown", (event) => {
         return;
     }
 
-    // 2. ESTADO DE BIOS
     if (currentAppState === "BIOS") {
         if (isHelpOpen) {
             isHelpOpen = false;
@@ -295,7 +291,6 @@ window.addEventListener("keydown", (event) => {
                 if (inContentArea) {
                     inContentArea = false;
                 } else {
-                    // Sair da BIOS sem salvar (equivalente a Exit without saving)
                     iniciarBootWindows();
                 }
                 break;
@@ -305,5 +300,4 @@ window.addEventListener("keydown", (event) => {
     }
 });
 
-// Inicializa a aplicação simulando o boot físico do computador
 iniciarPOST();
