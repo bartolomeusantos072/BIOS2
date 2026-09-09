@@ -1,18 +1,20 @@
-// Funções auxiliares para data e hora em tempo real
-function obterDataAtual() {
+// Funções auxiliares para data e hora em tempo real formatadas em arrays numéricos
+function obterDataEstruturada() {
     const hoje = new Date();
-    const mm = String(hoje.getMonth() + 1).padStart(2, '0');
-    const dd = String(hoje.getDate()).padStart(2, '0');
-    const yyyy = hoje.getFullYear();
-    return `${mm}/${dd}/${yyyy}`;
+    return {
+        mes: hoje.getMonth() + 1,
+        dia: hoje.getDate(),
+        ano: hoje.getFullYear()
+    };
 }
 
-function obterHoraAtual() {
+function obterHoraEstruturada() {
     const agora = new Date();
-    const hh = String(agora.getHours()).padStart(2, '0');
-    const min = String(agora.getMinutes()).padStart(2, '0');
-    const ss = String(agora.getSeconds()).padStart(2, '0');
-    return `${hh}:${min}:${ss}`;
+    return {
+        hora: agora.getHours(),
+        minuto: agora.getMinutes(),
+        segundo: agora.getSeconds()
+    };
 }
 
 let currentAppState = "POST";
@@ -22,8 +24,8 @@ const defaultBiosData = {
         title: "Standard CMOS Features",
         help: "Configurações básicas do sistema: data, hora, unidades de IDE/SATA e leitor de disquete.",
         items: [
-            { label: "Date (mm/dd/yyyy)", type: "text", value: obterDataAtual() },
-            { label: "Time (hh:mm:ss)", type: "text", value: obterHoraAtual() },
+            { label: "Date (mm/dd/yyyy)", type: "datetime", subType: "date", value: obterDataEstruturada() },
+            { label: "Time (hh:mm:ss)", type: "datetime", subType: "time", value: obterHoraEstruturada() },
             { label: "IDE Primary Master", type: "select", options: ["None", "Auto", "Hard Disk"], value: "Auto" },
             { label: "IDE Primary Slave", type: "select", options: ["None", "Auto", "CDROM"], value: "CDROM" },
             { label: "Drive A", type: "select", options: ["None", "1.44M, 3.5 in."], value: "1.44M, 3.5 in." }
@@ -86,8 +88,11 @@ let biosData = JSON.parse(sessionStorage.getItem("cmos_bios_data")) || defaultBi
 let currentMenuKey = "main";
 let selectedItemIndex = 0;
 let inContentArea = false; 
-let isEditingText = false; // Flag para controlar se estamos digitando livremente em um campo de texto
 let isHelpOpen = false;
+
+// Controle de sub-foco para data/hora estruturada (0 = primeiro bloco, 1 = segundo, 2 = terceiro)
+let subFieldIndex = 0; 
+let isSubEditing = false;
 
 let memoryTarget = 65536; 
 let currentMemory = 0;
@@ -161,6 +166,11 @@ function atualizarListaMenuHTML() {
 const helpTextEl = document.getElementById("help-text");
 const helpModalEl = document.getElementById("help-modal");
 
+// Retorna o número máximo de dias de um mês considerando ano bissexto
+function diasNoMes(mes, ano) {
+    return new Date(ano, mes, 0).getDate();
+}
+
 function renderBIOSScreen() {
     atualizarListaMenuHTML();
     
@@ -179,11 +189,38 @@ function renderBIOSScreen() {
     
     currentMenu.items.forEach((item, index) => {
         let isSelected = (inContentArea && selectedItemIndex === index);
-        let displayValue = item.value !== undefined ? item.value : '&gt;&gt;';
-        
-        // Se estiver editando este campo de texto, adiciona um cursor piscante visual simulado
-        if (isSelected && isEditingText && item.type === "text") {
-            displayValue = `<span style="border-bottom: 2px solid #fff; background-color: #000066;">${displayValue}_</span>`;
+        let displayValue = "";
+
+        if (item.type === "datetime") {
+            let v = item.value;
+            let pad = (n) => String(n).padStart(2, '0');
+            let padYear = (n) => String(n).padStart(4, '0');
+
+            if (item.subType === "date") {
+                let mStr = pad(v.mes);
+                let dStr = pad(v.dia);
+                let yStr = padYear(v.ano);
+
+                if (isSelected && isSubEditing) {
+                    if (subFieldIndex === 0) mStr = `<span style="background:#000066; border-bottom:2px solid #fff">${mStr}</span>`;
+                    if (subFieldIndex === 1) dStr = `<span style="background:#000066; border-bottom:2px solid #fff">${dStr}</span>`;
+                    if (subFieldIndex === 2) yStr = `<span style="background:#000066; border-bottom:2px solid #fff">${yStr}</span>`;
+                }
+                displayValue = `${mStr}/${dStr}/${yStr}`;
+            } else if (item.subType === "time") {
+                let hStr = pad(v.hora);
+                let minStr = pad(v.minuto);
+                let sStr = pad(v.segundo);
+
+                if (isSelected && isSubEditing) {
+                    if (subFieldIndex === 0) hStr = `<span style="background:#000066; border-bottom:2px solid #fff">${hStr}</span>`;
+                    if (subFieldIndex === 1) minStr = `<span style="background:#000066; border-bottom:2px solid #fff">${minStr}</span>`;
+                    if (subFieldIndex === 2) sStr = `<span style="background:#000066; border-bottom:2px solid #fff">${sStr}</span>`;
+                }
+                displayValue = `${hStr}:${minStr}:${sStr}`;
+            }
+        } else {
+            displayValue = item.value !== undefined ? item.value : '&gt;&gt;';
         }
 
         htmlContent += `
@@ -203,36 +240,6 @@ function salvarNoCMOS() {
 }
 
 window.addEventListener("keydown", (event) => {
-    // Se estiver editando um campo de texto livremente
-    if (currentAppState === "BIOS" && inContentArea && isEditingText) {
-        let currentMenuObj = biosData[currentMenuKey];
-        let item = currentMenuObj.items[selectedItemIndex];
-
-        if (event.key === "Enter" || event.key === "Escape") {
-            event.preventDefault();
-            isEditingText = false; // Sai do modo de digitação inline
-            renderBIOSScreen();
-            return;
-        }
-
-        if (event.key === "Backspace") {
-            event.preventDefault();
-            if (item.value.length > 0) {
-                item.value = item.value.slice(0, -1);
-                renderBIOSScreen();
-            }
-            return;
-        }
-
-        // Se for um caractere legível, adiciona ao texto do campo
-        if (event.key.length === 1) {
-            event.preventDefault();
-            item.value += event.key;
-            renderBIOSScreen();
-            return;
-        }
-    }
-
     if (["F1", "F2", "F5", "F10", "Delete", "Del", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Escape"].includes(event.key)) {
         event.preventDefault();
     }
@@ -257,6 +264,7 @@ window.addEventListener("keydown", (event) => {
 
         const menuKeys = Object.keys(biosData);
         let currentMenuObj = biosData[currentMenuKey];
+        let activeItem = currentMenuObj.items[selectedItemIndex];
 
         switch (event.key) {
             case "F1":
@@ -271,29 +279,54 @@ window.addEventListener("keydown", (event) => {
                 break;
 
             case "ArrowUp":
-                if (!inContentArea) {
-                    let currentIndex = menuKeys.indexOf(currentMenuKey);
-                    if (currentIndex > 0) {
-                        currentMenuKey = menuKeys[currentIndex - 1];
-                        selectedItemIndex = 0;
-                    }
-                } else {
-                    if (selectedItemIndex > 0) {
-                        selectedItemIndex--;
-                    }
-                }
-                break;
-
             case "ArrowDown":
                 if (!inContentArea) {
                     let currentIndex = menuKeys.indexOf(currentMenuKey);
-                    if (currentIndex < menuKeys.length - 1) {
+                    if (event.key === "ArrowUp" && currentIndex > 0) {
+                        currentMenuKey = menuKeys[currentIndex - 1];
+                        selectedItemIndex = 0;
+                    } else if (event.key === "ArrowDown" && currentIndex < menuKeys.length - 1) {
                         currentMenuKey = menuKeys[currentIndex + 1];
                         selectedItemIndex = 0;
                     }
+                    isSubEditing = false;
                 } else {
-                    if (selectedItemIndex < currentMenuObj.items.length - 1) {
+                    if (event.key === "ArrowUp" && selectedItemIndex > 0) {
+                        selectedItemIndex--;
+                        isSubEditing = false;
+                    } else if (event.key === "ArrowDown" && selectedItemIndex < currentMenuObj.items.length - 1) {
                         selectedItemIndex++;
+                        isSubEditing = false;
+                    } else if (inContentArea && isSubEditing && activeItem.type === "datetime") {
+                        // Modifica o valor numérico respeitando os limites
+                        let direcao = event.key === "ArrowUp" ? 1 : -1;
+                        let v = activeItem.value;
+
+                        if (activeItem.subType === "date") {
+                            if (subFieldIndex === 0) { // Mês (1 a 12)
+                                v.mes = ((v.mes - 1 + direcao + 12) % 12) + 1;
+                                // Garante que o dia não ultrapasse o novo limite do mês
+                                let maxD = diasNoMes(v.mes, v.ano);
+                                if (v.dia > maxD) v.dia = maxD;
+                            } else if (subFieldIndex === 1) { // Dia (1 até max dias do mês)
+                                let maxD = diasNoMes(v.mes, v.ano);
+                                v.dia = ((v.dia - 1 + direcao + maxD) % maxD) + 1;
+                            } else if (subFieldIndex === 2) { // Ano (1990 a 2099)
+                                v.ano += direcao;
+                                if (v.ano < 1990) v.ano = 2099;
+                                if (v.ano > 2099) v.ano = 1990;
+                                let maxD = diasNoMes(v.mes, v.ano);
+                                if (v.dia > maxD) v.dia = maxD;
+                            }
+                        } else if (activeItem.subType === "time") {
+                            if (subFieldIndex === 0) { // Hora (0 a 23)
+                                v.hora = (v.hora + direcao + 24) % 24;
+                            } else if (subFieldIndex === 1) { // Minuto (0 a 59)
+                                v.minuto = (v.minuto + direcao + 60) % 60;
+                            } else if (subFieldIndex === 2) { // Segundo (0 a 59)
+                                v.segundo = (v.segundo + direcao + 60) % 60;
+                            }
+                        }
                     }
                 }
                 break;
@@ -302,27 +335,33 @@ window.addEventListener("keydown", (event) => {
                 if (!inContentArea) {
                     inContentArea = true;
                     selectedItemIndex = 0;
+                    isSubEditing = false;
                 } else {
-                    let item = currentMenuObj.items[selectedItemIndex];
-                    if (item.type === "select") {
-                        let optIndex = item.options.indexOf(item.value);
-                        optIndex = (optIndex + 1) % item.options.length;
-                        item.value = item.options[optIndex];
-                    } else if (item.type === "text") {
-                        isEditingText = true; // Ativa digitação inline
+                    if (activeItem.type === "datetime" && isSubEditing) {
+                        if (subFieldIndex < 2) {
+                            subFieldIndex++;
+                        } else {
+                            isSubEditing = false; // Terminou os blocos, sai da sub-edição
+                        }
+                    } else if (activeItem.type === "select") {
+                        let optIndex = activeItem.options.indexOf(activeItem.value);
+                        optIndex = (optIndex + 1) % activeItem.options.length;
+                        activeItem.value = activeItem.options[optIndex];
                     }
                 }
                 break;
 
             case "ArrowLeft":
                 if (inContentArea) {
-                    let item = currentMenuObj.items[selectedItemIndex];
-                    if (item.type === "select") {
-                        let optIndex = item.options.indexOf(item.value);
-                        optIndex = (optIndex - 1 + item.options.length) % item.options.length;
-                        item.value = item.options[optIndex];
+                    if (activeItem.type === "datetime" && isSubEditing) {
+                        if (subFieldIndex > 0) {
+                            subFieldIndex--;
+                        } else {
+                            isSubEditing = false;
+                        }
                     } else {
                         inContentArea = false;
+                        isSubEditing = false;
                     }
                 } else {
                     inContentArea = false;
@@ -333,25 +372,35 @@ window.addEventListener("keydown", (event) => {
                 if (!inContentArea) {
                     inContentArea = true;
                     selectedItemIndex = 0;
+                    isSubEditing = false;
                 } else {
-                    let item = currentMenuObj.items[selectedItemIndex];
-                    if (item.type === "select") {
-                        let optIndex = item.options.indexOf(item.value);
-                        optIndex = (optIndex + 1) % item.options.length;
-                        item.value = item.options[optIndex];
-                    } else if (item.type === "text") {
-                        isEditingText = true; // Ativa digitação direta na linha ao pressionar Enter
-                    } else if (item.type === "action") {
-                        if (item.action === "save") {
+                    if (activeItem.type === "datetime") {
+                        if (!isSubEditing) {
+                            isSubEditing = true;
+                            subFieldIndex = 0; // Começa no primeiro bloco (Mês ou Hora)
+                        } else {
+                            // Avança para o próximo bloco ao dar Enter ou fecha se estiver no último
+                            if (subFieldIndex < 2) {
+                                subFieldIndex++;
+                            } else {
+                                isSubEditing = false;
+                            }
+                        }
+                    } else if (activeItem.type === "select") {
+                        let optIndex = activeItem.options.indexOf(activeItem.value);
+                        optIndex = (optIndex + 1) % activeItem.options.length;
+                        activeItem.value = activeItem.options[optIndex];
+                    } else if (activeItem.type === "action") {
+                        if (activeItem.action === "save") {
                             salvarNoCMOS();
                             alert("Configurações salvas no CMOS!");
                             iniciarBootWindows();
-                        } else if (item.action === "exit") {
+                        } else if (activeItem.action === "exit") {
                             if (confirm("Sair sem salvar as alterações?")) {
                                 sessionStorage.removeItem("cmos_bios_data");
                                 iniciarBootWindows();
                             }
-                        } else if (item.action === "defaults") {
+                        } else if (activeItem.action === "defaults") {
                             sessionStorage.removeItem("cmos_bios_data");
                             biosData = JSON.parse(JSON.stringify(defaultBiosData));
                             alert("Padrões otimizados carregados.");
@@ -362,7 +411,9 @@ window.addEventListener("keydown", (event) => {
                 break;
 
             case "Escape":
-                if (inContentArea) {
+                if (isSubEditing) {
+                    isSubEditing = false;
+                } else if (inContentArea) {
                     inContentArea = false;
                 } else {
                     iniciarBootWindows();
