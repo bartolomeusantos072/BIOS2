@@ -1,4 +1,20 @@
-// Estados da aplicação: 'POST', 'BIOS', 'WIN_BOOT', 'OS_DESKTOP'
+// Funções auxiliares para data e hora em tempo real
+function obterDataAtual() {
+    const hoje = new Date();
+    const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoje.getDate()).padStart(2, '0');
+    const yyyy = hoje.getFullYear();
+    return `${mm}/${dd}/${yyyy}`;
+}
+
+function obterHoraAtual() {
+    const agora = new Date();
+    const hh = String(agora.getHours()).padStart(2, '0');
+    const min = String(agora.getMinutes()).padStart(2, '0');
+    const ss = String(agora.getSeconds()).padStart(2, '0');
+    return `${hh}:${min}:${ss}`;
+}
+
 let currentAppState = "POST";
 
 const defaultBiosData = {
@@ -6,8 +22,8 @@ const defaultBiosData = {
         title: "Standard CMOS Features",
         help: "Configurações básicas do sistema: data, hora, unidades de IDE/SATA e leitor de disquete.",
         items: [
-            { label: "Date (mm/dd/yyyy)", type: "text", value: "09/09/2026" },
-            { label: "Time (hh:mm:ss)", type: "text", value: "11:29:32" },
+            { label: "Date (mm/dd/yyyy)", type: "text", value: obterDataAtual() },
+            { label: "Time (hh:mm:ss)", type: "text", value: obterHoraAtual() },
             { label: "IDE Primary Master", type: "select", options: ["None", "Auto", "Hard Disk"], value: "Auto" },
             { label: "IDE Primary Slave", type: "select", options: ["None", "Auto", "CDROM"], value: "CDROM" },
             { label: "Drive A", type: "select", options: ["None", "1.44M, 3.5 in."], value: "1.44M, 3.5 in." }
@@ -248,11 +264,32 @@ window.addEventListener("keydown", (event) => {
                 if (!inContentArea) {
                     inContentArea = true;
                     selectedItemIndex = 0;
+                } else {
+                    let item = currentMenuObj.items[selectedItemIndex];
+                    if (item.type === "select") {
+                        let optIndex = item.options.indexOf(item.value);
+                        optIndex = (optIndex + 1) % item.options.length;
+                        item.value = item.options[optIndex];
+                    } else if (item.type === "text") {
+                        let novoValor = prompt(`Alterar ${item.label}:`, item.value);
+                        if (novoValor !== null && novoValor.trim() !== "") {
+                            item.value = novoValor.trim();
+                        }
+                    }
                 }
                 break;
 
             case "ArrowLeft":
                 if (inContentArea) {
+                    let item = currentMenuObj.items[selectedItemIndex];
+                    if (item.type === "select") {
+                        let optIndex = item.options.indexOf(item.value);
+                        optIndex = (optIndex - 1 + item.options.length) % item.options.length;
+                        item.value = item.options[optIndex];
+                    } else {
+                        inContentArea = false;
+                    }
+                } else {
                     inContentArea = false;
                 }
                 break;
@@ -267,6 +304,11 @@ window.addEventListener("keydown", (event) => {
                         let optIndex = item.options.indexOf(item.value);
                         optIndex = (optIndex + 1) % item.options.length;
                         item.value = item.options[optIndex];
+                    } else if (item.type === "text") {
+                        let novoValor = prompt(`Alterar ${item.label}:`, item.value);
+                        if (novoValor !== null && novoValor.trim() !== "") {
+                            item.value = novoValor.trim();
+                        }
                     } else if (item.type === "action") {
                         if (item.action === "save") {
                             salvarNoCMOS();

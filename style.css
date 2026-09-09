@@ -16,8 +16,8 @@ body {
 }
 
 .screen {
-    width: 100vw;
-    height: 100vh;
+    width: 800px;
+    height: 500px;
     position: relative;
 }
 
@@ -30,7 +30,7 @@ body {
     flex-direction: column;
     justify-content: flex-start;
     color: #ccc;
-    font-size: 24px;
+    font-size: 14px;
 }
 
 .blink-text {
@@ -103,7 +103,7 @@ body {
 
 /* Windows Desktop Fake */
 #os-desktop-screen {
-    background-color: #3a6ea5; /* Azul clássico de fundo */
+    background-color: #3a6ea5;
     border: 4px solid #222;
     padding: 30px;
     display: flex;
