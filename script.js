@@ -1,4 +1,4 @@
-// Funções auxiliares para data e hora em tempo real formatadas em arrays numéricos
+// Funções auxiliares para data e hora em tempo real formatadas em objetos
 function obterDataEstruturada() {
     const hoje = new Date();
     return {
@@ -18,84 +18,39 @@ function obterHoraEstruturada() {
 }
 
 let currentAppState = "POST";
+let defaultBiosData = null;
+let biosData = null;
 
-const defaultBiosData = {
-    main: {
-        title: "Standard CMOS Features",
-        help: "Configurações básicas do sistema: data, hora, unidades de IDE/SATA e leitor de disquete.",
-        items: [
-            { label: "Date (mm/dd/yyyy)", type: "datetime", subType: "date", value: obterDataEstruturada() },
-            { label: "Time (hh:mm:ss)", type: "datetime", subType: "time", value: obterHoraEstruturada() },
-            { label: "IDE Primary Master", type: "select", options: ["None", "Auto", "Hard Disk"], value: "Auto" },
-            { label: "IDE Primary Slave", type: "select", options: ["None", "Auto", "CDROM"], value: "CDROM" },
-            { label: "Drive A", type: "select", options: ["None", "1.44M, 3.5 in."], value: "None" }
-        ]
-    },
-    advanced: {
-        title: "Advanced BIOS Features",
-        help: "Parâmetros avançados de desempenho, cache, ordem de boot e recursos do sistema.",
-        items: [
-            { label: "Virus Warning", type: "select", options: ["Disabled", "Enabled"], value: "Disabled" },
-            { label: "CPU Internal Cache", type: "select", options: ["Disabled", "Enabled"], value: "Enabled" },
-            { label: "Quick Power On Self Test", type: "select", options: ["Disabled", "Enabled"], value: "Enabled" },
-            { label: "First Boot Device", type: "select", options: ["Floppy", "Hard Disk", "CDROM", "USB-FDD"], value: "CDROM" },
-            { label: "Second Boot Device", type: "select", options: ["Floppy", "Hard Disk", "CDROM", "Disabled"], value: "Hard Disk" },
-            { label: "Third Boot Device", type: "select", options: ["Floppy", "Hard Disk", "CDROM", "Disabled"], value: "Disabled" }
-        ]
-    },
-    peripherals: {
-        title: "Integrated Peripherals",
-        help: "Gerenciamento de portas de I/O integradas, controladoras USB, áudio e rede onboard.",
-        items: [
-            { label: "USB Controller", type: "select", options: ["Disabled", "Enabled (USB 2.0)"], value: "Enabled (USB 2.0)" },
-            { label: "USB Keyboard Support", type: "select", options: ["Disabled", "Enabled"], value: "Enabled" },
-            { label: "USB Mouse Support", type: "select", options: ["Disabled", "Enabled"], value: "Enabled" },
-            { label: "AC97 Audio Onboard", type: "select", options: ["Disabled", "Auto"], value: "Auto" },
-            { label: "Onboard LAN (Network)", type: "select", options: ["Disabled", "Enabled"], value: "Enabled" }
-        ]
-    },
-    overclock: {
-        title: "Frequency / Voltage Control (Overclock)",
-        help: "Configurações de multiplicador de CPU, barramentos e ajustes manuais de tensão.",
-        items: [
-            { label: "CPU Host Clock (MHz)", type: "select", options: ["100 MHz", "133 MHz", "166 MHz", "200 MHz (OC)"], value: "133 MHz" },
-            { label: "CPU Ratio / Multiplier", type: "select", options: ["Auto", "x10.0", "x12.5", "x15.0 (Unlocked)"], value: "Auto" },
-            { label: "AGP Frequency (MHz)", type: "select", options: ["Auto", "66 MHz", "72 MHz"], value: "66 MHz" },
-            { label: "CPU VCore Voltage", type: "select", options: ["Normal", "+0.05V", "+0.10V"], value: "Normal" }
-        ]
-    },
-    power: {
-        title: "Power Management Setup",
-        help: "Recursos avançados de energia, suspensão e comportamento de ligar após queda de energia.",
-        items: [
-            { label: "ACPI Function", type: "select", options: ["Disabled", "Enabled"], value: "Enabled" },
-            { label: "ACPI Suspend Type", type: "select", options: ["S1 (POS)", "S3 (STR)"], value: "S3 (STR)" },
-            { label: "PWR Button < 4 Secs", type: "select", options: ["Soft-Off", "Suspend"], value: "Soft-Off" }
-        ]
-    },
-    exit: {
-        title: "Save & Exit Setup",
-        help: "Grava as modificações no CMOS físico/virtual e reinicia, ou descarta as alterações.",
-        items: [
-            { label: "Save & Exit Setup", type: "action", action: "save" },
-            { label: "Exit Without Saving", type: "action", action: "exit" },
-            { label: "Load Optimized Defaults", type: "action", action: "defaults" }
-        ]
-    }
-};
-
-let biosData = JSON.parse(sessionStorage.getItem("cmos_bios_data")) || defaultBiosData;
 let currentMenuKey = "main";
 let selectedItemIndex = 0;
 let inContentArea = false; 
 let isHelpOpen = false;
 
-let subFieldIndex = 0; 
-let isSubEditing = false;
+let subFieldIndex = 0; // Index do campo de data/hora (0: Mês/Hora, 1: Dia/Minuto, 2: Ano/Segundo)
 
 let memoryTarget = 65536; 
 let currentMemory = 0;
 let postTimer = null;
+
+async function inicializarAplicacao() {
+    try {
+        const response = await fetch("./biosData.json");
+        defaultBiosData = await response.json();
+
+        // Injeta os valores dinâmicos de Data e Hora no objeto carregado
+        defaultBiosData.main.items.forEach(item => {
+            if (item.type === "datetime") {
+                if (item.subType === "date") item.value = obterDataEstruturada();
+                if (item.subType === "time") item.value = obterHoraEstruturada();
+            }
+        });
+
+        biosData = JSON.parse(sessionStorage.getItem("cmos_bios_data")) || defaultBiosData;
+        iniciarPOST();
+    } catch (error) {
+        console.error("Erro ao carregar o arquivo JSON da BIOS:", error);
+    }
+}
 
 function iniciarPOST() {
     currentAppState = "POST";
@@ -125,23 +80,27 @@ function iniciarPOST() {
 
 function iniciarBootWindows() {
     currentAppState = "WIN_BOOT";
-    // Oculta rigorosamente todas as outras telas
     document.getElementById("post-screen").style.display = "none";
     document.getElementById("bios-container").style.display = "none";
     document.getElementById("os-desktop-screen").style.display = "none";
     
-    // Exibe apenas a tela de boot do Windows
     document.getElementById("windows-boot-screen").style.display = "flex";
 
     setTimeout(() => {
         if (currentAppState === "WIN_BOOT") {
             currentAppState = "OS_DESKTOP";
             document.getElementById("windows-boot-screen").style.display = "none";
-            document.getElementById("os-desktop-screen").style.display = "flex";
+            
+            // Carrega o simulador do Windows XP no iframe ao finalizar o boot
+            const iframe = document.getElementById("windows-xp-frame");
+            if (iframe && iframe.src !== "https://pranx.com/windows-xp-simulator/") {
+                iframe.src = "https://pranx.com/windows-xp-simulator/";
+            }
+
+            document.getElementById("os-desktop-screen").style.display = "block";
         }
     }, 3500);
 }
-
 function reiniciarComputador() {
     location.reload();
 }
@@ -204,10 +163,11 @@ function renderBIOSScreen() {
                 let dStr = pad(v.dia);
                 let yStr = padYear(v.ano);
 
-                if (isSelected && isSubEditing) {
-                    if (subFieldIndex === 0) mStr = `<span style="background:#000066; border-bottom:2px solid #fff">${mStr}</span>`;
-                    if (subFieldIndex === 1) dStr = `<span style="background:#000066; border-bottom:2px solid #fff">${dStr}</span>`;
-                    if (subFieldIndex === 2) yStr = `<span style="background:#000066; border-bottom:2px solid #fff">${yStr}</span>`;
+                // Destaca o sub-campo ativo na linha selecionada
+                if (isSelected) {
+                    if (subFieldIndex === 0) mStr = `<span style="background:#000066; color:#fff; font-weight:bold;">${mStr}</span>`;
+                    if (subFieldIndex === 1) dStr = `<span style="background:#000066; color:#fff; font-weight:bold;">${dStr}</span>`;
+                    if (subFieldIndex === 2) yStr = `<span style="background:#000066; color:#fff; font-weight:bold;">${yStr}</span>`;
                 }
                 displayValue = `${mStr}/${dStr}/${yStr}`;
             } else if (item.subType === "time") {
@@ -215,10 +175,11 @@ function renderBIOSScreen() {
                 let minStr = pad(v.minuto);
                 let sStr = pad(v.segundo);
 
-                if (isSelected && isSubEditing) {
-                    if (subFieldIndex === 0) hStr = `<span style="background:#000066; border-bottom:2px solid #fff">${hStr}</span>`;
-                    if (subFieldIndex === 1) minStr = `<span style="background:#000066; border-bottom:2px solid #fff">${minStr}</span>`;
-                    if (subFieldIndex === 2) sStr = `<span style="background:#000066; border-bottom:2px solid #fff">${sStr}</span>`;
+                // Destaca o sub-campo ativo na linha selecionada
+                if (isSelected) {
+                    if (subFieldIndex === 0) hStr = `<span style="background:#000066; color:#fff; font-weight:bold;">${hStr}</span>`;
+                    if (subFieldIndex === 1) minStr = `<span style="background:#000066; color:#fff; font-weight:bold;">${minStr}</span>`;
+                    if (subFieldIndex === 2) sStr = `<span style="background:#000066; color:#fff; font-weight:bold;">${sStr}</span>`;
                 }
                 displayValue = `${hStr}:${minStr}:${sStr}`;
             }
@@ -242,8 +203,85 @@ function salvarNoCMOS() {
     sessionStorage.setItem("cmos_bios_data", JSON.stringify(biosData));
 }
 
+// Incrementa/decrementa o valor do item selecionado (+ ou -)
+function alterarValorItem(activeItem, direcao) {
+    if (activeItem.type === "datetime") {
+        let v = activeItem.value;
+
+        if (activeItem.subType === "date") {
+            if (subFieldIndex === 0) { 
+                // Mês (1-12)
+                v.mes = ((v.mes - 1 + direcao + 12) % 12) + 1;
+                let maxD = diasNoMes(v.mes, v.ano);
+                if (v.dia > maxD) v.dia = maxD;
+            } else if (subFieldIndex === 1) { 
+                // Dia
+                let maxD = diasNoMes(v.mes, v.ano);
+                v.dia = ((v.dia - 1 + direcao + maxD) % maxD) + 1;
+            } else if (subFieldIndex === 2) { 
+                // Ano
+                v.ano += direcao;
+                if (v.ano < 1990) v.ano = 2099;
+                if (v.ano > 2099) v.ano = 1990;
+                let maxD = diasNoMes(v.mes, v.ano);
+                if (v.dia > maxD) v.dia = maxD;
+            }
+        } else if (activeItem.subType === "time") {
+            if (subFieldIndex === 0) { 
+                // Hora (0-23)
+                v.hora = (v.hora + direcao + 24) % 24;
+            } else if (subFieldIndex === 1) { 
+                // Minuto (0-59)
+                v.minuto = (v.minuto + direcao + 60) % 60;
+            } else if (subFieldIndex === 2) { 
+                // Segundo (0-59)
+                v.segundo = (v.segundo + direcao + 60) % 60;
+            }
+        }
+    } else if (activeItem.type === "select") {
+        let optIndex = activeItem.options.indexOf(activeItem.value);
+        optIndex = (optIndex + direcao + activeItem.options.length) % activeItem.options.length;
+        activeItem.value = activeItem.options[optIndex];
+    }
+}
+
+// Digitação direta de números nos sub-campos de data e hora
+function inserirNumeroDireto(activeItem, num) {
+    if (activeItem.type !== "datetime") return;
+    let v = activeItem.value;
+
+    if (activeItem.subType === "date") {
+        if (subFieldIndex === 0) { // Mês
+            let novo = v.mes * 10 + num;
+            v.mes = (novo >= 1 && novo <= 12) ? novo : num;
+            let maxD = diasNoMes(v.mes, v.ano);
+            if (v.dia > maxD) v.dia = maxD;
+        } else if (subFieldIndex === 1) { // Dia
+            let maxD = diasNoMes(v.mes, v.ano);
+            let novo = v.dia * 10 + num;
+            v.dia = (novo >= 1 && novo <= maxD) ? novo : (num <= maxD ? num : v.dia);
+        } else if (subFieldIndex === 2) { // Ano
+            let novo = v.ano * 10 + num;
+            if (novo > 2099) novo = 2000 + num;
+            v.ano = novo;
+        }
+    } else if (activeItem.subType === "time") {
+        if (subFieldIndex === 0) { // Hora
+            let novo = v.hora * 10 + num;
+            v.hora = (novo >= 0 && novo <= 23) ? novo : num;
+        } else if (subFieldIndex === 1) { // Minuto
+            let novo = v.minuto * 10 + num;
+            v.minuto = (novo >= 0 && novo <= 59) ? novo : num;
+        } else if (subFieldIndex === 2) { // Segundo
+            let novo = v.segundo * 10 + num;
+            v.segundo = (novo >= 0 && novo <= 59) ? novo : num;
+        }
+    }
+}
+
 window.addEventListener("keydown", (event) => {
-    if (["F1", "F2", "F5", "F10", "Delete", "Del", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Escape"].includes(event.key)) {
+    const keysIgnorar = ["F1", "F2", "F5", "F10", "Delete", "Del", "Tab", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Escape", "+", "-", "PageUp", "PageDown"];
+    if (keysIgnorar.includes(event.key)) {
         event.preventDefault();
     }
 
@@ -269,6 +307,13 @@ window.addEventListener("keydown", (event) => {
         let currentMenuObj = biosData[currentMenuKey];
         let activeItem = currentMenuObj.items[selectedItemIndex];
 
+        // Se for um número de 0 a 9, digita direto no sub-campo selecionado
+        if (/^[0-9]$/.test(event.key) && inContentArea) {
+            inserirNumeroDireto(activeItem, parseInt(event.key, 10));
+            renderBIOSScreen();
+            return;
+        }
+
         switch (event.key) {
             case "F1":
                 helpModalEl.style.display = "block";
@@ -282,52 +327,60 @@ window.addEventListener("keydown", (event) => {
                 break;
 
             case "ArrowUp":
+                if (!inContentArea) {
+                    let currentIndex = menuKeys.indexOf(currentMenuKey);
+                    if (currentIndex > 0) {
+                        currentMenuKey = menuKeys[currentIndex - 1];
+                        selectedItemIndex = 0;
+                        subFieldIndex = 0;
+                    }
+                } else {
+                    if (selectedItemIndex > 0) {
+                        selectedItemIndex--;
+                        subFieldIndex = 0;
+                    }
+                }
+                break;
+
             case "ArrowDown":
                 if (!inContentArea) {
                     let currentIndex = menuKeys.indexOf(currentMenuKey);
-                    if (event.key === "ArrowUp" && currentIndex > 0) {
-                        currentMenuKey = menuKeys[currentIndex - 1];
-                        selectedItemIndex = 0;
-                    } else if (event.key === "ArrowDown" && currentIndex < menuKeys.length - 1) {
+                    if (currentIndex < menuKeys.length - 1) {
                         currentMenuKey = menuKeys[currentIndex + 1];
                         selectedItemIndex = 0;
+                        subFieldIndex = 0;
                     }
-                    isSubEditing = false;
                 } else {
-                    if (event.key === "ArrowUp" && selectedItemIndex > 0) {
-                        selectedItemIndex--;
-                        isSubEditing = false;
-                    } else if (event.key === "ArrowDown" && selectedItemIndex < currentMenuObj.items.length - 1) {
+                    if (selectedItemIndex < currentMenuObj.items.length - 1) {
                         selectedItemIndex++;
-                        isSubEditing = false;
-                    } else if (inContentArea && isSubEditing && activeItem.type === "datetime") {
-                        let direcao = event.key === "ArrowUp" ? 1 : -1;
-                        let v = activeItem.value;
+                        subFieldIndex = 0;
+                    }
+                }
+                break;
 
-                        if (activeItem.subType === "date") {
-                            if (subFieldIndex === 0) { 
-                                v.mes = ((v.mes - 1 + direcao + 12) % 12) + 1;
-                                let maxD = diasNoMes(v.mes, v.ano);
-                                if (v.dia > maxD) v.dia = maxD;
-                            } else if (subFieldIndex === 1) { 
-                                let maxD = diasNoMes(v.mes, v.ano);
-                                v.dia = ((v.dia - 1 + direcao + maxD) % maxD) + 1;
-                            } else if (subFieldIndex === 2) { 
-                                v.ano += direcao;
-                                if (v.ano < 1990) v.ano = 2099;
-                                if (v.ano > 2099) v.ano = 1990;
-                                let maxD = diasNoMes(v.mes, v.ano);
-                                if (v.dia > maxD) v.dia = maxD;
-                            }
-                        } else if (activeItem.subType === "time") {
-                            if (subFieldIndex === 0) { 
-                                v.hora = (v.hora + direcao + 24) % 24;
-                            } else if (subFieldIndex === 1) { 
-                                v.minuto = (v.minuto + direcao + 60) % 60;
-                            } else if (subFieldIndex === 2) { 
-                                v.segundo = (v.segundo + direcao + 60) % 60;
-                            }
-                        }
+            // Altera valor para cima (+ ou PageUp)
+            case "+":
+            case "PageUp":
+                if (inContentArea) {
+                    alterarValorItem(activeItem, 1);
+                }
+                break;
+
+            // Altera valor para baixo (- ou PageDown)
+            case "-":
+            case "PageDown":
+                if (inContentArea) {
+                    alterarValorItem(activeItem, -1);
+                }
+                break;
+
+            // Alterna entre os sub-campos (Mês -> Dia -> Ano) ou (Hora -> Minuto -> Segundo)
+            case "Tab":
+                if (inContentArea && activeItem.type === "datetime") {
+                    if (event.shiftKey) {
+                        subFieldIndex = (subFieldIndex - 1 + 3) % 3; // Shift + Tab volta
+                    } else {
+                        subFieldIndex = (subFieldIndex + 1) % 3; // Tab avança
                     }
                 }
                 break;
@@ -336,33 +389,28 @@ window.addEventListener("keydown", (event) => {
                 if (!inContentArea) {
                     inContentArea = true;
                     selectedItemIndex = 0;
-                    isSubEditing = false;
+                    subFieldIndex = 0;
                 } else {
-                    if (activeItem.type === "datetime" && isSubEditing) {
-                        if (subFieldIndex < 2) {
-                            subFieldIndex++;
-                        } else {
-                            isSubEditing = false;
-                        }
+                    if (activeItem.type === "datetime") {
+                        subFieldIndex = (subFieldIndex + 1) % 3;
                     } else if (activeItem.type === "select") {
-                        let optIndex = activeItem.options.indexOf(activeItem.value);
-                        optIndex = (optIndex + 1) % activeItem.options.length;
-                        activeItem.value = activeItem.options[optIndex];
+                        alterarValorItem(activeItem, 1);
                     }
                 }
                 break;
 
             case "ArrowLeft":
                 if (inContentArea) {
-                    if (activeItem.type === "datetime" && isSubEditing) {
+                    if (activeItem.type === "datetime") {
                         if (subFieldIndex > 0) {
                             subFieldIndex--;
                         } else {
-                            isSubEditing = false;
+                            inContentArea = false;
                         }
+                    } else if (activeItem.type === "select") {
+                        alterarValorItem(activeItem, -1);
                     } else {
                         inContentArea = false;
-                        isSubEditing = false;
                     }
                 } else {
                     inContentArea = false;
@@ -373,23 +421,12 @@ window.addEventListener("keydown", (event) => {
                 if (!inContentArea) {
                     inContentArea = true;
                     selectedItemIndex = 0;
-                    isSubEditing = false;
+                    subFieldIndex = 0;
                 } else {
                     if (activeItem.type === "datetime") {
-                        if (!isSubEditing) {
-                            isSubEditing = true;
-                            subFieldIndex = 0; 
-                        } else {
-                            if (subFieldIndex < 2) {
-                                subFieldIndex++;
-                            } else {
-                                isSubEditing = false;
-                            }
-                        }
+                        subFieldIndex = (subFieldIndex + 1) % 3;
                     } else if (activeItem.type === "select") {
-                        let optIndex = activeItem.options.indexOf(activeItem.value);
-                        optIndex = (optIndex + 1) % activeItem.options.length;
-                        activeItem.value = activeItem.options[optIndex];
+                        alterarValorItem(activeItem, 1);
                     } else if (activeItem.type === "action") {
                         if (activeItem.action === "save") {
                             salvarNoCMOS();
@@ -411,10 +448,9 @@ window.addEventListener("keydown", (event) => {
                 break;
 
             case "Escape":
-                if (isSubEditing) {
-                    isSubEditing = false;
-                } else if (inContentArea) {
+                if (inContentArea) {
                     inContentArea = false;
+                    subFieldIndex = 0;
                 } else {
                     iniciarBootWindows();
                 }
@@ -425,4 +461,4 @@ window.addEventListener("keydown", (event) => {
     }
 });
 
-iniciarPOST();
+inicializarAplicacao();

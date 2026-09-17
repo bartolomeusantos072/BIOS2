@@ -1,0 +1,64 @@
+{
+  "main": {
+    "title": "Standard CMOS Features",
+    "help": "Configurações básicas do sistema: data, hora, unidades de IDE/SATA e leitor de disquete.",
+    "items": [
+      { "label": "Date (mm/dd/yyyy)", "type": "datetime", "subType": "date", "value": null },
+      { "label": "Time (hh:mm:ss)", "type": "datetime", "subType": "time", "value": null },
+      { "label": "IDE Primary Master", "type": "select", "options": ["None", "Auto", "Hard Disk"], "value": "Auto" },
+      { "label": "IDE Primary Slave", "type": "select", "options": ["None", "Auto", "CDROM"], "value": "CDROM" },
+      { "label": "Drive A", "type": "select", "options": ["None", "1.44M, 3.5 in."], "value": "None" }
+    ]
+  },
+  "advanced": {
+    "title": "Advanced BIOS Features",
+    "help": "Parâmetros avançados de desempenho, cache, ordem de boot e recursos do sistema.",
+    "items": [
+      { "label": "Virus Warning", "type": "select", "options": ["Disabled", "Enabled"], "value": "Disabled" },
+      { "label": "CPU Internal Cache", "type": "select", "options": ["Disabled", "Enabled"], "value": "Enabled" },
+      { "label": "Quick Power On Self Test", "type": "select", "options": ["Disabled", "Enabled"], "value": "Enabled" },
+      { "label": "First Boot Device", "type": "select", "options": ["Floppy", "Hard Disk", "CDROM", "USB-FDD"], "value": "CDROM" },
+      { "label": "Second Boot Device", "type": "select", "options": ["Floppy", "Hard Disk", "CDROM", "Disabled"], "value": "Hard Disk" },
+      { "label": "Third Boot Device", "type": "select", "options": ["Floppy", "Hard Disk", "CDROM", "Disabled"], "value": "Disabled" }
+    ]
+  },
+  "peripherals": {
+    "title": "Integrated Peripherals",
+    "help": "Gerenciamento de portas de I/O integradas, controladoras USB, áudio e rede onboard.",
+    "items": [
+      { "label": "USB Controller", "type": "select", "options": ["Disabled", "Enabled (USB 2.0)"], "value": "Enabled (USB 2.0)" },
+      { "label": "USB Keyboard Support", "type": "select", "options": ["Disabled", "Enabled"], "value": "Enabled" },
+      { "label": "USB Mouse Support", "type": "select", "options": ["Disabled", "Enabled"], "value": "Enabled" },
+      { "label": "AC97 Audio Onboard", "type": "select", "options": ["Disabled", "Auto"], "value": "Auto" },
+      { "label": "Onboard LAN (Network)", "type": "select", "options": ["Disabled", "Enabled"], "value": "Enabled" }
+    ]
+  },
+  "overclock": {
+    "title": "Frequency / Voltage Control (Overclock)",
+    "help": "Configurações de multiplicador de CPU, barramentos e ajustes manuais de tensão.",
+    "items": [
+      { "label": "CPU Host Clock (MHz)", "type": "select", "options": ["100 MHz", "133 MHz", "166 MHz", "200 MHz (OC)"], "value": "133 MHz" },
+      { "label": "CPU Ratio / Multiplier", "type": "select", "options": ["Auto", "x10.0", "x12.5", "x15.0 (Unlocked)"], "value": "Auto" },
+      { "label": "AGP Frequency (MHz)", "type": "select", "options": ["Auto", "66 MHz", "72 MHz"], "value": "66 MHz" },
+      { "label": "CPU VCore Voltage", "type": "select", "options": ["Normal", "+0.05V", "+0.10V"], "value": "Normal" }
+    ]
+  },
+  "power": {
+    "title": "Power Management Setup",
+    "help": "Recursos avançados de energia, suspensão e comportamento de ligar após queda de energia.",
+    "items": [
+      { "label": "ACPI Function", "type": "select", "options": ["Disabled", "Enabled"], "value": "Enabled" },
+      { "label": "ACPI Suspend Type", "type": "select", "options": ["S1 (POS)", "S3 (STR)"], "value": "S3 (STR)" },
+      { "label": "PWR Button < 4 Secs", "type": "select", "options": ["Soft-Off", "Suspend"], "value": "Soft-Off" }
+    ]
+  },
+  "exit": {
+    "title": "Save & Exit Setup",
+    "help": "Grava as modificações no CMOS físico/virtual e reinicia, ou descarta as alterações.",
+    "items": [
+      { "label": "Save & Exit Setup", "type": "action", "action": "save" },
+      { "label": "Exit Without Saving", "type": "action", "action": "exit" },
+      { "label": "Load Optimized Defaults", "type": "action", "action": "defaults" }
+    ]
+  }
+}
